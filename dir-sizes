@@ -89,7 +89,7 @@ cat $TMP_DIR_BY_HUMAN | sort -rh > $DIR_BY_HUMAN
 cat $TMP_DIR_BY_BLOCKS | sort -rn > $DIR_BY_BLOCKS
 
 # Numeric sort by items sizes in reverse (high-low) order
-cat $TMP_DIR_BY_ITEMS | sort -rn > $DIR_BY_BLOCKS
+cat $TMP_DIR_BY_ITEMS | sort -rn > $DIR_BY_ITEMS
 
 # Remove temp files
 rm $TMP_DIR_BY_HUMAN $TMP_DIR_BY_BLOCKS $TMP_DIR_BY_ITEMS
