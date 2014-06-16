@@ -1,0 +1,95 @@
+#!/bin/bash
+
+#
+# dir-sizes - Scan a directory -- usually /home -- and report on the size
+#             of subdirectories within it.  Used for finding large consumers
+#             of storage
+#
+
+VERSION="2014.0615.01"
+
+function usage {
+	echo
+	echo "dir-sizes Version $VERSION"
+	echo
+	echo "Syntax: dir-sizes <directory-to-scan>"
+	echo
+}
+
+# Set directory to scan to first parameter or null
+SCAN_DIR=${1:-"null"}
+
+# If the user didn't set a directory to scan, scan home by default
+if [[ $SCAN_DIR == "null" ]]
+then
+	SCAN_DIR="/home/*"
+fi
+
+# Define some temp files to hold unsorted output
+TMP_DIR_BY_HUMAN=/tmp/dir-sizes-human.tmp.txt
+TMP_DIR_BY_BLOCKS=/tmp/dir-sizes-block.tmp.txt
+TMP_DIR_BY_ITEMS=/tmp/dir-sizes-files.tmp.txt
+
+# Report sorted by name
+DIR_BY_NAME="dir-sizes-by-name.$(date +%Y.%m%d).txt"
+
+# Report sorted by human sizes (128G, 10M)
+DIR_BY_HUMAN="dir-sizes-by-human.$(date +%Y.%m%d).txt"
+
+# Report sorted by block size
+DIR_BY_BLOCKS="dir-sizes-by-block.$(date +%Y.%m%d).txt"
+
+# Report sorted by files
+DIR_BY_ITEMS="dir-sizes-by-files.$(date +%Y.%m%d).txt"
+
+# Remove existing tmp file for human sort
+if [[ -f $TMP_DIR_BY_HUMAN ]]
+then
+	rm $TMP_DIR_BY_HUMAN
+fi
+
+# Remove existing tmp file for block sort
+if [[ -f $TMP_DIR_BY_BLOCKS ]]
+then
+	rm $TMP_DIR_BY_BLOCKS
+fi
+
+# Remove existing tmp file for files sort
+if [[ -f $TMP_DIR_BY_ITEMS ]]
+then
+	rm $TMP_DIR_BY_ITEMS
+fi
+
+# Scan each file in /home
+for EACH_DIR in $SCAN_DIR
+do
+
+	DIR_SIZE_HUMAN=$(du -sh $EACH_DIR | awk -F " " '{print $1}')
+	DIR_SIZE_BLOCKS=$(du -s $EACH_DIR | awk -F " " '{print $1}')
+	DIR_SIZE_ITEMS=$(find $EACH_DIR | wc -l)
+
+	# Report what we found, name first
+	echo $EACH_DIR $DIR_SIZE_HUMAN $DIR_SIZE_BLOCKS $DIR_SIZE_ITEMS | tee -a $DIR_BY_NAME
+
+	# Save info with human readable values first for sorting
+	echo $DIR_SIZE_HUMAN $EACH_DIR "B:" $DIR_SIZE_BLOCKS "I:" $DIR_SIZE_ITEMS >> $TMP_DIR_BY_HUMAN
+
+	# Save info with blocks first for sorting 
+	echo $DIR_SIZE_BLOCKS $EACH_DIR "H:" $DIR_SIZE_HUMAN "I:" $DIR_SIZE_ITEMS >> $TMP_DIR_BY_BLOCKS
+
+	# Save info with items first for sorting
+	echo $DIR_SIZE_ITEMS $EACH_DIR "B:" $DIR_SIZE_BLOCKS "H:" $DIR_SIZE_HUMAN >> $TMP_DIR_BY_ITEMS
+
+done
+
+# Sort human readable sizes (208G) smartly in reverse (high-low) order
+cat $TMP_DIR_BY_HUMAN | sort -rh > $DIR_BY_HUMAN
+
+# Numeric sort by block sizes in reverse (high-low) order
+cat $TMP_DIR_BY_BLOCKS | sort -rn > $DIR_BY_BLOCKS
+
+# Numeric sort by items sizes in reverse (high-low) order
+cat $TMP_DIR_BY_ITEMS | sort -rn > $DIR_BY_BLOCKS
+
+# Remove temp files
+rm $TMP_DIR_BY_HUMAN $TMP_DIR_BY_BLOCKS $TMP_DIR_BY_ITEMS
